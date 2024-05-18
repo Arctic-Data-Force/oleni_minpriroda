@@ -1,72 +1,140 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi.middleware.cors import CORSMiddleware
-import shutil
+import sys
 import os
-import zipfile
-from typing import List
-from starlette.requests import Request
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QFileDialog, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem, QLabel, QMessageBox, QScrollArea, QStackedWidget
+from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtCore import Qt
 
-app = FastAPI()
+class ImageViewer(QWidget):
+    def __init__(self):
+        super().__init__()
 
-# Set up CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Adjust as needed
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+        self.setWindowTitle("Простой просмотрщик изображений")
+        self.setGeometry(100, 100, 800, 600)
 
-# Set up templates
-templates = Jinja2Templates(directory="templates")
+        # Главное окно
+        self.main_widget = QWidget()
+        self.main_layout = QHBoxLayout(self.main_widget)
 
-# Serve static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/uploaded_images", StaticFiles(directory="uploaded_images"), name="uploaded_images")
+        self.button = QPushButton("Выбрать папку", self)
+        self.button.clicked.connect(self.select_folder)
 
-# Directory to save uploaded images
-UPLOAD_DIR = "uploaded_images"
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
+        self.folder_list = QListWidget(self)
+        self.folder_list.setSelectionMode(QListWidget.SingleSelection)  # Изменение режима выбора на одиночный
+        self.folder_list.itemClicked.connect(self.load_selected_folder)
 
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    files = os.listdir(UPLOAD_DIR)
-    images = [file for file in files if file.lower().endswith(('png', 'jpg', 'jpeg', 'gif'))]
-    return templates.TemplateResponse("index.html", {"request": request, "images": images})
+        self.image_list = QListWidget(self)
+        self.image_list.setViewMode(QListWidget.IconMode)
+        self.image_list.itemClicked.connect(self.show_image)
 
-@app.post("/upload/")
-async def upload_image(files: List[UploadFile] = File(...)):
-    for file in files:
-        if not (file.filename.lower().endswith(('png', 'jpg', 'jpeg', 'gif', 'zip'))):
-            raise HTTPException(status_code=400, detail="Invalid file type. Only images and ZIP files are allowed.")
-        if file.filename.lower().endswith('.zip'):
-            zip_path = f"{UPLOAD_DIR}/{file.filename}"
-            with open(zip_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(UPLOAD_DIR)
-            os.remove(zip_path)
+        self.default_folder_icon = QIcon('default_folder.png')  # Путь к вашей иконке для папок по умолчанию
+        self.default_image_icon = QIcon('default_image.png')  # Путь к вашей иконке для изображений по умолчанию
+
+        self.button_layout = QVBoxLayout()
+        self.button_layout.addWidget(self.button)
+        self.button_layout.addWidget(self.folder_list)
+
+        self.button_container = QWidget()
+        self.button_container.setLayout(self.button_layout)
+        self.button_container.setFixedWidth(200)  # Устанавливаем фиксированную ширину
+
+        self.list_layout = QVBoxLayout()
+        self.list_layout.addWidget(self.image_list)
+
+        self.main_layout.addWidget(self.button_container)
+        self.main_layout.addLayout(self.list_layout)
+
+        # Виджет для отображения изображения
+        self.image_widget = QWidget()
+        self.image_layout = QVBoxLayout(self.image_widget)
+        
+        self.back_button = QPushButton("Назад", self)
+        self.back_button.clicked.connect(self.back_to_main_view)
+        
+        self.image_label = QLabel()
+        self.image_label.setAlignment(Qt.AlignCenter)
+        
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidget(self.image_label)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setAlignment(Qt.AlignCenter)
+        
+        self.image_layout.addWidget(self.back_button)
+        self.image_layout.addWidget(self.scroll_area)
+        
+        # Создаем стек виджетов
+        self.stack = QStackedWidget(self)
+        self.stack.addWidget(self.main_widget)
+        self.stack.addWidget(self.image_widget)
+
+        # Основной макет
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.addWidget(self.stack)
+
+    def select_folder(self):
+        folder_path = QFileDialog.getExistingDirectory(self, "Выбрать папку", options=QFileDialog.DontUseNativeDialog)
+        if folder_path:
+            self.load_icons(folder_path)
+            self.update_folder_list(folder_path)
+            self.set_current_folder(folder_path)
+
+    def load_icons(self, folder_path):
+        self.image_list.clear()
+        image_files = [f for f in os.listdir(folder_path) if f.endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp'))]
+
+        if image_files:
+            for image_file in image_files:
+                item = QListWidgetItem(self.default_image_icon, image_file)
+                self.image_list.addItem(item)
         else:
-            file_location = f"{UPLOAD_DIR}/{file.filename}"
-            with open(file_location, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
-    return templates.TemplateResponse("upload_complete.html", {"request": {}})
+            item = QListWidgetItem(self.default_image_icon, "В выбранной папке нет изображений.")
+            self.image_list.addItem(item)
 
-@app.post("/delete_all/")
-async def delete_all_images():
-    for filename in os.listdir(UPLOAD_DIR):
-        file_path = os.path.join(UPLOAD_DIR, filename)
-        try:
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
-        except Exception as e:
-            print(f"Error: {e}")
-    return {"detail": "All images deleted"}
+    def update_folder_list(self, folder_path):
+        folders = [self.folder_list.item(i).text() for i in range(self.folder_list.count())]
+        if folder_path not in folders:
+            self.folder_list.addItem(QListWidgetItem(self.default_folder_icon, folder_path))
+        # Ensure a folder is always selected
+        if self.folder_list.count() > 0:
+            self.folder_list.setCurrentRow(0)
+            self.load_selected_folder(self.folder_list.currentItem())
+
+    def set_current_folder(self, folder_path):
+        items = self.folder_list.findItems(folder_path, Qt.MatchExactly)
+        if items:
+            self.folder_list.setCurrentItem(items[0])
+            self.load_icons(folder_path)
+
+    def load_selected_folder(self, item):
+        folder_path = item.text()
+        self.load_icons(folder_path)
+
+    def show_image(self, item):
+        image_name = item.text()
+        current_folder_items = self.folder_list.selectedItems()
+        if current_folder_items:
+            folder_path = current_folder_items[0].text()
+            image_path = os.path.join(folder_path, image_name)
+
+            pixmap = QPixmap(image_path)
+            if pixmap.isNull():
+                QMessageBox.warning(self, "Ошибка", "Не удалось загрузить изображение.")
+                return
+
+            screen_geometry = QApplication.primaryScreen().geometry()
+            max_width, max_height = int(screen_geometry.width() * 0.8), int(screen_geometry.height() * 0.8)
+            scaled_pixmap = pixmap.scaled(max_width, max_height, Qt.KeepAspectRatio)
+
+            self.image_label.setPixmap(scaled_pixmap)
+            self.stack.setCurrentWidget(self.image_widget)
+        else:
+            QMessageBox.warning(self, "Предупреждение", "Пожалуйста, выберите папку")
+
+    def back_to_main_view(self):
+        self.stack.setCurrentWidget(self.main_widget)
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    app = QApplication(sys.argv)
+    viewer = ImageViewer()
+    viewer.show()
+    sys.exit(app.exec_())
+##############################
