@@ -1,6 +1,9 @@
 import sys
 import os
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QFileDialog, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem, QLabel, QMessageBox, QScrollArea, QStackedWidget
+from PyQt5.QtWidgets import QApplication, QWidget, \
+    QPushButton, QFileDialog, QVBoxLayout, QHBoxLayout, \
+    QListWidget, QListWidgetItem, QLabel, QMessageBox,\
+    QScrollArea, QStackedWidget
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import Qt
 
@@ -92,12 +95,20 @@ class ImageViewer(QWidget):
         image_files = [f for f in os.listdir(folder_path) if f.endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp'))]
 
         if image_files:
-            for image_file in image_files:
-                item = QListWidgetItem(self.default_image_icon, image_file)
+            for index, image_file in enumerate(image_files):
+                new_name = os.path.join(folder_path, f"img_{index}.png")
+                while os.path.exists(new_name):
+                    index += 1
+                    new_name = os.path.join(folder_path, f"img_{index}.png")
+                old_path = os.path.join(folder_path, image_file)
+                os.rename(old_path, new_name)
+                item = QListWidgetItem(self.default_image_icon, f"img_{index}.png")
                 self.image_list.addItem(item)
         else:
             item = QListWidgetItem(self.default_image_icon, "В выбранной папке нет изображений.")
             self.image_list.addItem(item)
+
+
 
     def update_folder_list(self, folder_path):
         folders = [self.folder_list.item(i).text() for i in range(self.folder_list.count())]
