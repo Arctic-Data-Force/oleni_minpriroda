@@ -1,11 +1,11 @@
 import sys
 import os
-from PyQt5.QtWidgets import QApplication, QWidget, \
+from PyQt6.QtWidgets import QApplication, QWidget, \
     QPushButton, QFileDialog, QVBoxLayout, QHBoxLayout, \
     QListWidget, QListWidgetItem, QLabel, QMessageBox,\
     QScrollArea, QStackedWidget
-from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtCore import Qt
+from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtCore import Qt
 
 class ImageViewer(QWidget):
     def __init__(self):
@@ -24,11 +24,11 @@ class ImageViewer(QWidget):
         self.button.clicked.connect(self.select_folder)
 
         self.folder_list = QListWidget(self)
-        self.folder_list.setSelectionMode(QListWidget.SingleSelection)  # Изменение режима выбора на одиночный
+        self.folder_list.setSelectionMode(QListWidget.SelectionMode.SingleSelection)  # Изменение режима выбора на одиночный
         self.folder_list.itemClicked.connect(self.load_selected_folder)
 
         self.image_list = QListWidget(self)
-        self.image_list.setViewMode(QListWidget.IconMode)
+        self.image_list.setViewMode(QListWidget.ViewMode.IconMode)
         self.image_list.itemClicked.connect(self.show_image)
 
         self.default_folder_icon = QIcon('default_folder.png')  # Путь к вашей иконке для папок по умолчанию
@@ -56,12 +56,12 @@ class ImageViewer(QWidget):
         self.back_button.clicked.connect(self.back_to_main_view)
         
         self.image_label = QLabel()
-        self.image_label.setAlignment(Qt.AlignCenter)
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidget(self.image_label)
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setAlignment(Qt.AlignCenter)
+        self.scroll_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         self.image_layout.addWidget(self.back_button)
         self.image_layout.addWidget(self.scroll_area)
@@ -84,7 +84,7 @@ class ImageViewer(QWidget):
             self.load_icons(folder_path)
 
     def select_folder(self):
-        folder_path = QFileDialog.getExistingDirectory(self, "Выбрать папку", options=QFileDialog.DontUseNativeDialog)
+        folder_path = QFileDialog.getExistingDirectory(self, "Выбрать папку", options=QFileDialog.Option.DontUseNativeDialog)
         if folder_path:
             self.load_icons(folder_path)
             self.update_folder_list(folder_path)
@@ -120,7 +120,7 @@ class ImageViewer(QWidget):
             self.load_selected_folder(self.folder_list.currentItem())
 
     def set_current_folder(self, folder_path):
-        items = self.folder_list.findItems(folder_path, Qt.MatchExactly)
+        items = self.folder_list.findItems(folder_path, Qt.MatchFlag.MatchExactly)
         if items:
             self.folder_list.setCurrentItem(items[0])
             self.load_icons(folder_path)
@@ -143,7 +143,7 @@ class ImageViewer(QWidget):
 
             screen_geometry = QApplication.primaryScreen().geometry()
             max_width, max_height = int(screen_geometry.width() * 0.8), int(screen_geometry.height() * 0.8)
-            scaled_pixmap = pixmap.scaled(max_width, max_height, Qt.KeepAspectRatio)
+            scaled_pixmap = pixmap.scaled(max_width, max_height, Qt.AspectRatioMode.KeepAspectRatio)
 
             self.image_label.setPixmap(scaled_pixmap)
             self.stack.setCurrentWidget(self.image_widget)
@@ -157,5 +157,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     viewer = ImageViewer()
     viewer.show()
-    sys.exit(app.exec_())
-##############################
+    sys.exit(app.exec())
