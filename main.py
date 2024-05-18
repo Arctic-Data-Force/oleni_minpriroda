@@ -10,6 +10,8 @@ class ImageViewer(QWidget):
 
         self.setWindowTitle("Простой просмотрщик изображений")
         self.setGeometry(100, 100, 800, 600)
+        
+        self.resizeEvent = self.on_resize
 
         # Главное окно
         self.main_widget = QWidget()
@@ -69,6 +71,14 @@ class ImageViewer(QWidget):
         # Основной макет
         self.main_layout = QVBoxLayout(self)
         self.main_layout.addWidget(self.stack)
+        
+    def on_resize(self, event):
+        # Get the current folder path
+        current_folder_item = self.folder_list.currentItem()
+        if current_folder_item:
+            folder_path = current_folder_item.text()
+            # Update the icons in the current folder
+            self.load_icons(folder_path)
 
     def select_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Выбрать папку", options=QFileDialog.DontUseNativeDialog)
