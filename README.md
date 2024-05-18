@@ -1,4 +1,4 @@
 # Запуск приложения
 ```
-uvicorn main:app
+python main.py
 ```
