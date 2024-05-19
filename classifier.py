@@ -1,5 +1,9 @@
 import os
 import shutil
+from ensemble import EnsembleModel
+import pandas as pd
+
+
 
 def classify_images(current_folder, classified_folder_path, confidence_threshold):
     deer_path = os.path.join(classified_folder_path, 'Олень')
@@ -7,31 +11,40 @@ def classify_images(current_folder, classified_folder_path, confidence_threshold
     roe_deer_path = os.path.join(classified_folder_path, 'Косуля')
     uncertain_path = os.path.join(classified_folder_path, 'Низкая уверенность')
 
+    ensemble_model = EnsembleModel(alpha=0.5, confidence=confidence_threshold)
+    data = []
     try:
         for path in [classified_folder_path, deer_path, musk_deer_path, roe_deer_path, uncertain_path]:
             if not os.path.exists(path):
                 os.makedirs(path)
 
-        for index in range(len(os.listdir(current_folder))):
-            file_path = os.path.join(current_folder, f"img_{index}.png")
+        for file_name in os.listdir(current_folder):
+            file_path = os.path.join(current_folder, file_name)
             if not os.path.exists(file_path):
                 print(f"File not found: {file_path}")
                 continue
-            # Insert classification logic here
-            # Example:
-            # result, confidence = classify_image(file_path)
-            # Placeholder for classification result and confidence
-            result = 'Олень'
-            confidence = 0.95
-            if confidence < confidence_threshold:
-                shutil.copy(file_path, uncertain_path)
+
+            print(file_path)
+            final_class = ensemble_model.predict(file_path)
+            model_names = {0: 'Олень', 1: 'Кабарга', 2: 'Косуля'}
+            for_csv = {'Кабарга': 0, 'Косуля': 1, 'Олень': 2}
+            print(f"Final Prediction: {model_names[final_class]}")
+
+            data.append({'img_name': file_name, 'class':for_csv[model_names[final_class]]})
+
+            if final_class == 0:
+                shutil.copy(file_path, deer_path)
+            elif final_class == 1:
+                shutil.copy(file_path, musk_deer_path)
+            elif final_class == 2:
+                shutil.copy(file_path, roe_deer_path)
             else:
-                if result == 'Олень':
-                    shutil.copy(file_path, deer_path)
-                elif result == 'Кабарга':
-                    shutil.copy(file_path, musk_deer_path)
-                elif result == 'Косуля':
-                    shutil.copy(file_path, roe_deer_path)
+                shutil.copy(file_path, uncertain_path)
+
+        df = pd.DataFrame(data, columns=['img_name', 'class'])
+
+        df.to_csv('result.csv', index=False)
+
     except Exception as e:
         print(f"Error during classification: {e}")
     finally:

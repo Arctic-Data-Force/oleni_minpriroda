@@ -10,6 +10,7 @@ from PyQt6.QtGui import QPixmap, QIcon
 from PyQt6.QtCharts import QChart, QChartView, QPieSeries, QBarSeries, QBarSet, QBarCategoryAxis, QValueAxis
 from classifier import classify_images
 
+
 class ImageClassifierApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -170,14 +171,8 @@ class ImageClassifierApp(QMainWindow):
         image_files = [f for f in os.listdir(folder_path) if f.endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp'))]
 
         if image_files:
-            for index, image_file in enumerate(image_files):
-                new_name = os.path.join(folder_path, f"img_{index}.png")
-                while os.path.exists(new_name):
-                    index += 1
-                    new_name = os.path.join(folder_path, f"img_{index}.png")
-                old_path = os.path.join(folder_path, image_file)
-                os.rename(old_path, new_name)
-                item = QListWidgetItem(self.default_image_icon, f"img_{index}.png")
+            for image_file in image_files:
+                item = QListWidgetItem(self.default_image_icon, image_file)
                 self.file_list.addItem(item)
         else:
             item = QListWidgetItem(self.default_image_icon, "No images found")
