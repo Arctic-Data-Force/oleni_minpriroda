@@ -6,10 +6,9 @@ from PyQt6.QtWidgets import (
     QListWidgetItem, QMessageBox, QSlider, QSpinBox, QApplication
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap, QIcon
+from PyQt6.QtGui import QPixmap, QIcon, QFont
 from PyQt6.QtCharts import QChart, QChartView, QPieSeries, QBarSeries, QBarSet, QBarCategoryAxis, QValueAxis
 from classifier import classify_images
-
 
 class ImageClassifierApp(QMainWindow):
     def __init__(self):
@@ -20,10 +19,12 @@ class ImageClassifierApp(QMainWindow):
         self.confidence_threshold = 0.5  # Default confidence threshold
         self.initUI()
 
+        icon = QIcon("134073936.png")
+        self.setWindowIcon(icon)
+
     def initUI(self):
         self.setWindowTitle('Image Classifier')
         self.setGeometry(100, 100, 1200, 800)
-
         self.resizeEvent = self.on_resize
 
         main_layout = QHBoxLayout()
@@ -31,10 +32,10 @@ class ImageClassifierApp(QMainWindow):
         # Left Panel
         left_panel = QVBoxLayout()
 
-        self.default_folder_icon = QIcon('default_folder.png')  # Path to your default folder icon
-        self.default_image_icon = QIcon('default_image.png')  # Path to your default image icon
+        self.default_folder_icon = QIcon('default_folder.png')
+        self.default_image_icon = QIcon('default_image.png')
 
-        self.upload_button = QPushButton('+')
+        self.upload_button = QPushButton('Загрузить')
         self.upload_button.clicked.connect(self.select_folder)
         left_panel.addWidget(self.upload_button)
 
@@ -127,8 +128,56 @@ class ImageClassifierApp(QMainWindow):
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
 
+        # Apply minimalistic style
+        self.apply_stylesheet()
+
         # Disable buttons initially
         self.update_buttons_state()
+
+    def apply_stylesheet(self):
+        self.setStyleSheet("""
+        QWidget {
+            font-family: Arial;
+            font-size: 14px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        QPushButton {
+            background-color: #0078d7;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+        }
+        QPushButton:hover {
+            background-color: #005fa3;
+        }
+        QPushButton:disabled {
+            background-color: #a6a6a6;
+        }
+        QListWidget {
+            background-color: white;
+            border: 1px solid #ccc;
+        }
+        QSlider::groove:horizontal {
+            height: 8px;
+            background: #d3d3d3;
+            border-radius: 4px;
+        }
+        QSlider::handle:horizontal {
+            width: 16px;
+            background: #0078d7;
+            border: none;
+            border-radius: 8px;
+        }
+        QSpinBox {
+            background-color: white;
+            border: 1px solid #ccc;
+        }
+        QLabel {
+            padding: 4px 0;
+        }
+        """)
 
     def set_current_folder(self, folder_path):
         items = self.folder_list.findItems(folder_path, Qt.MatchFlag.MatchExactly)
@@ -140,7 +189,6 @@ class ImageClassifierApp(QMainWindow):
         folders = [self.folder_list.item(i).text() for i in range(self.folder_list.count())]
         if folder_path not in folders:
             self.folder_list.addItem(QListWidgetItem(self.default_folder_icon, folder_path))
-        # Ensure a folder is always selected
         if self.folder_list.count() > 0:
             self.folder_list.setCurrentRow(0)
             self.load_selected_folder(self.folder_list.currentItem())
@@ -185,22 +233,17 @@ class ImageClassifierApp(QMainWindow):
 
     def load_selected_folder(self, item):
         folder_path = item.text()
-        print(f"Загружена папка: {folder_path}")
         self.load_icons(folder_path)
         if "Низкая уверенность" in folder_path:
             self.button_active = True
-            print("Кнопки должны быть активны")
         else:
             self.button_active = False
-            print("Кнопки должны быть неактивны")
-        self.update_buttons_state()  # Обновляем состояние кнопок
+        self.update_buttons_state()
 
     def load_predefined_folder(self, item):
         folder_path = item.text()
-        print(f"Загружена предопределенная папка: {folder_path}")
         self.load_icons(folder_path)
         self.button_active = "Низкая уверенность" in folder_path
-        print(f"button_active: {self.button_active}")
         self.update_buttons_state()
 
     def classify_images(self):
@@ -283,11 +326,8 @@ class ImageClassifierApp(QMainWindow):
 
     def update_buttons_state(self):
         selected_items = self.file_list.selectedItems()
-        print(f"Выбранные элементы: {[item.text() for item in selected_items]}")
-
         buttons_enabled = self.button_active or (
                     bool(selected_items) and self.current_folder == self.classified_folder_path)
-        print(f"Кнопки должны быть активны: {buttons_enabled}")
 
         self.deer_button.setEnabled(buttons_enabled)
         self.musk_deer_button.setEnabled(buttons_enabled)
