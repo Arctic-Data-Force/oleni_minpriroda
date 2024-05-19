@@ -1,1 +1,4 @@
-# oleni_minpriroda
+# Запуск приложения
+```
+python main.py
+```
